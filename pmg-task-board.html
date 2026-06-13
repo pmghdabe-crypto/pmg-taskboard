@@ -431,6 +431,39 @@ header {
   border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+/* overtime toggle */
+.overtime-row {
+  display:none; /* shown only when today is selected */
+  margin-top:10px;
+}
+.overtime-row.visible { display:block; }
+.overtime-label-text {
+  font-size:10px; font-weight:700; color:var(--pmg); letter-spacing:.04em;
+  margin-bottom:6px;
+  display:flex; align-items:center; gap:4px;
+}
+.overtime-label-text .req { color:var(--red); font-size:11px; }
+.overtime-toggle {
+  display:grid; grid-template-columns:1fr 1fr; gap:6px;
+}
+.ot-btn {
+  padding:11px 8px; border-radius:10px; border:2px solid var(--pmg-border);
+  background:#fff; font-family:'Noto Sans JP',sans-serif; font-size:13px;
+  font-weight:700; text-align:center; cursor:pointer;
+  transition:border-color 0.15s, background 0.15s, color 0.15s;
+  color:#aaa;
+}
+.ot-btn.selected-regular { border-color:#3949AB; background:#EEF2FF; color:#3949AB; }
+.ot-btn.selected-overtime { border-color:#E65100; background:#FFF3EC; color:#E65100; }
+
+/* overtime badge on card */
+.ot-badge {
+  font-size:9.5px; font-weight:700; border-radius:4px;
+  padding:1px 6px; white-space:nowrap; flex-shrink:0;
+}
+.ot-badge.regular  { background:#EEF2FF; color:#3949AB; }
+.ot-badge.overtime { background:#FFF3EC; color:#E65100; }
 </style>
 
   <!-- Firebase SDK -->
@@ -598,12 +631,20 @@ header {
       </div>
       <div class="modal-select-group">
         <label class="modal-select-label">スケジュール <span style="font-weight:400;color:#bbb;">（任意）</span></label>
-        <select id="task-sched">
+        <select id="task-sched" onchange="onSchedChange('task')">
           <option value="">なし</option>
           <option value="today">🔴 今日やること</option>
           <option value="nice">🟢 できたら今日</option>
           <option value="tomorrow">🟠 明日やること</option>
         </select>
+      </div>
+    </div>
+    <!-- overtime row: shown when today is selected -->
+    <div class="overtime-row" id="add-overtime-row">
+      <div class="overtime-label-text">定時内 / 定時外 <span class="req">※必須</span></div>
+      <div class="overtime-toggle">
+        <div class="ot-btn" id="add-ot-regular"  onclick="selectOT('add','regular')">🏢 定時内</div>
+        <div class="ot-btn" id="add-ot-overtime" onclick="selectOT('add','overtime')">🌙 定時外</div>
       </div>
     </div>
     <div class="modal-actions">
@@ -640,12 +681,19 @@ header {
       </div>
       <div class="modal-select-group">
         <label class="modal-select-label">スケジュール</label>
-        <select id="edit-sched">
+        <select id="edit-sched" onchange="onSchedChange('edit')">
           <option value="">なし</option>
           <option value="today">🔴 今日やること</option>
           <option value="nice">🟢 できたら今日</option>
           <option value="tomorrow">🟠 明日やること</option>
         </select>
+      </div>
+    </div>
+    <div class="overtime-row" id="edit-overtime-row">
+      <div class="overtime-label-text">定時内 / 定時外 <span class="req">※必須</span></div>
+      <div class="overtime-toggle">
+        <div class="ot-btn" id="edit-ot-regular"  onclick="selectOT('edit','regular')">🏢 定時内</div>
+        <div class="ot-btn" id="edit-ot-overtime" onclick="selectOT('edit','overtime')">🌙 定時外</div>
       </div>
     </div>
     <div class="modal-actions" style="margin-top:14px;">
@@ -757,6 +805,9 @@ function makePriorityCard(t) {
   const tagHtml = tagKey && TAG_LABELS[tagKey]
     ? `<span class="sched-tag ${tagKey}">${TAG_LABELS[tagKey]}</span>`
     : '';
+  const otHtml = (tagKey === 'today' && t.overtime)
+    ? `<span class="ot-badge ${t.overtime}">${t.overtime === 'regular' ? '🏢定時内' : '🌙定時外'}</span>`
+    : '';
 
   const memberHtml = t.member && MEMBERS[t.member]
     ? `<span class="assignee-badge ${t.member}">${MEMBERS[t.member].label}</span>`
@@ -765,7 +816,7 @@ function makePriorityCard(t) {
   card.innerHTML = `
     <span class="drag-dots">⠿</span>
     <div class="task-card-inner">
-      <span class="task-text">${escHtml(t.text)}</span>${tagHtml}${memberHtml}
+      <span class="task-text">${escHtml(t.text)}</span>${tagHtml}${otHtml}${memberHtml}
     </div>
     <div class="task-actions-col">
       <button class="btn-done" onclick="markDone('${t.id}')">✓</button>
@@ -786,10 +837,13 @@ function makeSmallCard(t) {
   const smMemberHtml = t.member && MEMBERS[t.member]
     ? `<span class="assignee-badge ${t.member}" style="font-size:9.5px;">${MEMBERS[t.member].label}</span>`
     : '';
+  const smOtHtml = (t.col === 'today' && t.overtime)
+    ? `<span class="ot-badge ${t.overtime}" style="font-size:9px;">${t.overtime === 'regular' ? '🏢定時内' : '🌙定時外'}</span>`
+    : '';
   card.innerHTML = `
     <span class="drag-dots" style="font-size:14px;color:#D0BBDF;">⠿</span>
     <span class="task-text">${escHtml(t.text)}</span>
-    ${smMemberHtml}
+    ${smMemberHtml}${smOtHtml}
     <div class="task-actions-col">
       <button class="btn-done" onclick="markDone('${t.id}')">✓</button>
     </div>`;
@@ -997,6 +1051,9 @@ function openAddModal(col) {
   // reset member chip to 'none'
   selectedMember = 'none';
   document.querySelectorAll('.member-chip').forEach(c => c.classList.toggle('selected', c.dataset.m === 'none'));
+  // reset overtime
+  addOT = null; resetOTBtns('add');
+  document.getElementById('add-overtime-row').classList.remove('visible');
   setTimeout(() => document.getElementById('task-input').focus(), 80);
 }
 function closeAddModal() {
@@ -1005,6 +1062,8 @@ function closeAddModal() {
   document.getElementById('task-sched').value = '';
   selectedMember = 'none';
   document.querySelectorAll('.member-chip').forEach(c => c.classList.toggle('selected', c.dataset.m === 'none'));
+  addOT = null; resetOTBtns('add');
+  document.getElementById('add-overtime-row').classList.remove('visible');
 }
 function closeAddModalOutside(e) {
   if (e.target === document.getElementById('add-modal')) closeAddModal();
@@ -1015,7 +1074,11 @@ function addTask() {
   const col = document.getElementById('task-col').value;
   const schedCol = document.getElementById('task-sched').value || undefined;
   const member = selectedMember !== 'none' ? selectedMember : undefined;
-  const newTask = { id: 'task-' + Date.now(), text, col, schedCol: schedCol || null, member: member || null };
+  // Validate overtime when today is selected
+  if (schedCol === 'today' && !addOT) {
+    showToast('⚠️ 定時内 / 定時外を選択してください'); return;
+  }
+  const newTask = { id: 'task-' + Date.now(), text, col, schedCol: schedCol || null, member: member || null, overtime: schedCol === 'today' ? addOT : null };
   tasksRef.child(newTask.id).set(newTask);
   closeAddModal(); showToast('追加しました');
   switchTab('priority'); selectCat(col);
@@ -1024,6 +1087,33 @@ function addTask() {
 // ── EDIT MODAL ──
 let editId = null;
 let editMember = 'none';
+let addOT = null;   // 'regular' | 'overtime' | null
+let editOT = null;
+
+function onSchedChange(prefix) {
+  const val = document.getElementById(prefix === 'add' ? 'task-sched' : 'edit-sched').value;
+  const row = document.getElementById(prefix + '-overtime-row');
+  if (val === 'today') {
+    row.classList.add('visible');
+  } else {
+    row.classList.remove('visible');
+    if (prefix === 'add') addOT = null;
+    else editOT = null;
+    resetOTBtns(prefix);
+  }
+}
+function selectOT(prefix, val) {
+  if (prefix === 'add') addOT = val;
+  else editOT = val;
+  resetOTBtns(prefix);
+  document.getElementById(prefix + '-ot-' + val).classList.add('selected-' + val);
+}
+function resetOTBtns(prefix) {
+  ['regular','overtime'].forEach(v => {
+    const btn = document.getElementById(prefix + '-ot-' + v);
+    if (btn) btn.className = 'ot-btn';
+  });
+}
 
 function openMoveModal(id) { openEditModal(id); } // ↔ button alias
 
@@ -1038,6 +1128,16 @@ function openEditModal(id) {
   document.querySelectorAll('#edit-member-row .member-chip').forEach(c =>
     c.classList.toggle('selected', c.dataset.m === editMember)
   );
+  // restore overtime state
+  editOT = task.overtime || null;
+  resetOTBtns('edit');
+  const editSchedVal = task.schedCol || '';
+  if (editSchedVal === 'today') {
+    document.getElementById('edit-overtime-row').classList.add('visible');
+    if (editOT) document.getElementById('edit-ot-' + editOT).classList.add('selected-' + editOT);
+  } else {
+    document.getElementById('edit-overtime-row').classList.remove('visible');
+  }
   document.getElementById('edit-modal').classList.remove('hidden');
   setTimeout(() => document.getElementById('edit-input').focus(), 80);
 }
@@ -1059,12 +1159,17 @@ function saveEdit() {
   if (!text) return;
   const task = tasks.find(t => t.id === editId);
   if (!task) return;
+  const editSchedVal = document.getElementById('edit-sched').value || null;
+  if (editSchedVal === 'today' && !editOT) {
+    showToast('⚠️ 定時内 / 定時外を選択してください'); return;
+  }
   const updatedTask = {
     ...task,
     text,
     col: document.getElementById('edit-col').value,
-    schedCol: document.getElementById('edit-sched').value || null,
+    schedCol: editSchedVal,
     member: editMember !== 'none' ? editMember : null,
+    overtime: editSchedVal === 'today' ? editOT : null,
   };
   tasksRef.child(editId).set(updatedTask);
   closeEditModal(); showToast('更新しました');
