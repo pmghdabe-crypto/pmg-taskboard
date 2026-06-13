@@ -435,8 +435,8 @@ header {
 
 /* overtime toggle */
 .overtime-row {
-  display:none; /* shown only when today is selected */
-  margin-top:10px;
+  display:none;
+  margin-top:8px;
 }
 .overtime-row.visible { display:block; }
 .overtime-label-text {
@@ -607,6 +607,40 @@ header {
     <div class="modal-handle"></div>
     <h3>タスクを追加</h3>
     <textarea id="task-input" placeholder="タスク内容を入力…" maxlength="200"></textarea>
+
+    <!-- スケジュール（任意） -->
+    <div style="margin-top:10px;">
+      <label class="modal-select-label">スケジュール <span style="font-weight:400;color:#bbb;">（任意）</span></label>
+      <select id="task-sched" onchange="onSchedChange('task')" style="width:100%;margin-top:4px;border:1.5px solid var(--pmg-border);border-radius:10px;padding:9px 10px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#1a1a2e;background:#fff;outline:none;">
+        <option value="">なし</option>
+        <option value="today">🔴 今日やること</option>
+        <option value="nice">🟢 できたら今日</option>
+        <option value="tomorrow">🟠 明日やること</option>
+      </select>
+    </div>
+
+    <!-- 定時内/定時外（今日選択時のみ） -->
+    <div class="overtime-row" id="add-overtime-row">
+      <div class="overtime-label-text">定時内 / 定時外 <span class="req">※必須</span></div>
+      <div class="overtime-toggle">
+        <div class="ot-btn" id="add-ot-regular"  onclick="selectOT('add','regular')">🏢 定時内</div>
+        <div class="ot-btn" id="add-ot-overtime" onclick="selectOT('add','overtime')">🌙 定時外</div>
+      </div>
+    </div>
+
+    <!-- 優先度（任意） -->
+    <div style="margin-top:10px;">
+      <label class="modal-select-label">優先度 <span style="font-weight:400;color:#bbb;">（任意）</span></label>
+      <select id="task-col" style="width:100%;margin-top:4px;border:1.5px solid var(--pmg-border);border-radius:10px;padding:9px 10px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#1a1a2e;background:#fff;outline:none;">
+        <option value="">-- 選択しない --</option>
+        <option value="urgent-important">① 急ぎ＆重要</option>
+        <option value="urgent-notimportant">② 急ぎ・重要でない</option>
+        <option value="noturgent-important">③ 重要・急ぎでない</option>
+        <option value="noturgent-notimportant">④ どちらでもない</option>
+      </select>
+    </div>
+
+    <!-- 担当者 -->
     <div style="margin-top:10px;">
       <div class="modal-select-label">担当者</div>
       <div class="member-row">
@@ -616,35 +650,7 @@ header {
         <div class="member-chip selected" data-m="none"  onclick="selectMember('none')">未定</div>
       </div>
     </div>
-    <div class="modal-select-row">
-      <div class="modal-select-group">
-        <label class="modal-select-label">優先度 <span style="font-weight:400;color:#bbb;">（任意）</span></label>
-        <select id="task-col">
-          <option value="">-- 選択しない --</option>
-          <option value="urgent-important">① 急ぎ＆重要</option>
-          <option value="urgent-notimportant">② 急ぎ・重要でない</option>
-          <option value="noturgent-important">③ 重要・急ぎでない</option>
-          <option value="noturgent-notimportant">④ どちらでもない</option>
-        </select>
-      </div>
-      <div class="modal-select-group">
-        <label class="modal-select-label">スケジュール <span style="font-weight:400;color:#bbb;">（任意）</span></label>
-        <select id="task-sched" onchange="onSchedChange('task')">
-          <option value="">なし</option>
-          <option value="today">🔴 今日やること</option>
-          <option value="nice">🟢 できたら今日</option>
-          <option value="tomorrow">🟠 明日やること</option>
-        </select>
-      </div>
-    </div>
-    <!-- overtime row: shown when today is selected -->
-    <div class="overtime-row" id="add-overtime-row">
-      <div class="overtime-label-text">定時内 / 定時外 <span class="req">※必須</span></div>
-      <div class="overtime-toggle">
-        <div class="ot-btn" id="add-ot-regular"  onclick="selectOT('add','regular')">🏢 定時内</div>
-        <div class="ot-btn" id="add-ot-overtime" onclick="selectOT('add','overtime')">🌙 定時外</div>
-      </div>
-    </div>
+
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeAddModal()">キャンセル</button>
       <button class="btn-submit" onclick="addTask()">追加する</button>
