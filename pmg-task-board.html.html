@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PMG タスクボード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --pmg: #55046B;
+  --pmg-dark: #3a0249;
+  --pmg-light: #7B1FA2;
+  --pmg-bg: #F3EEF5;
+  --pmg-border: #E0D0E8;
+  --red: #D32F2F;
+  --orange: #E65100;
+  --blue: #1565C0;
+  --grey: #757575;
+  --green: #2E7D32;
+  --amber: #F57C00;
+  --header-h: 52px;
+  --nav-h: 48px;
+  --bottom-h: 54px;
+  --cat-bar-h: 72px;
+}
+
+html, body {
+  height: 100%; overflow: hidden;
+  background: var(--pmg-bg);
+  font-family: 'Noto Sans JP', sans-serif;
+  color: #1a1a2e;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── HEADER ── */
+header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--header-h);
+  background: var(--pmg);
+  display: flex; align-items: center;
+  padding: 0 16px; gap: 10px;
+  z-index: 60;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+}
+.logo { font-family:'Inter',sans-serif; font-weight:700; font-size:16px; color:#fff; letter-spacing:.05em; }
+.logo span { color:#E0B8F0; }
+.header-sub { font-size:11px; color:rgba(255,255,255,0.6); border-left:1px solid rgba(255,255,255,0.2); padding-left:10px; }
+.header-add {
+  margin-left:auto; width:36px; height:36px; border-radius:50%;
+  background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.35);
+  color:#fff; font-size:24px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0;
+}
+.header-add:active { background:rgba(255,255,255,0.32); }
+
+/* ── NAV TABS ── */
+.nav-tabs {
+  position: fixed; top: var(--header-h); left:0; right:0;
+  height: var(--nav-h);
+  background: #fff;
+  border-bottom: 1.5px solid var(--pmg-border);
+  display: flex; z-index:55;
+}
+.nav-btn {
+  flex:1; border:none; background:none;
+  font-family:'Noto Sans JP',sans-serif; font-size:10px; font-weight:500;
+  color:#999; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  position:relative;
+}
+.nav-btn .nav-icon { font-size:17px; line-height:1; }
+.nav-btn .nav-badge {
+  position:absolute; top:4px; right:8px;
+  background:var(--red); color:#fff;
+  font-family:'Inter',sans-serif; font-size:9px; font-weight:700;
+  border-radius:8px; padding:0 4px; min-width:14px; height:14px;
+  line-height:14px; text-align:center; display:none;
+}
+.nav-btn.active { color:var(--pmg); font-weight:700; }
+.nav-btn.active::after {
+  content:''; position:absolute; bottom:0; left:18%; right:18%;
+  height:2.5px; background:var(--pmg); border-radius:2px 2px 0 0;
+}
+
+/* ── CONTENT AREA ── */
+.content {
+  position:fixed;
+  top: calc(var(--header-h) + var(--nav-h));
+  bottom: var(--bottom-h);
+  left:0; right:0;
+  overflow:hidden;
+}
+
+/* ── PANEL ── */
+.panel { display:none; height:100%; flex-direction:column; }
+.panel.active { display:flex; }
+
+/* ══════════════════════════════
+   PRIORITY PANEL
+══════════════════════════════ */
+/* 4-pill category selector */
+.cat-bar {
+  flex-shrink:0;
+  height: var(--cat-bar-h);
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 6px;
+  background: #fff;
+  border-bottom: 1.5px solid var(--pmg-border);
+}
+.cat-pill {
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: var(--pmg-bg);
+  display: flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:2px; cursor:pointer;
+  padding: 4px 2px;
+  transition: border-color 0.15s, background 0.15s;
+  position:relative;
+}
+.cat-pill .pill-label {
+  font-size:9px; font-weight:700; line-height:1.2; text-align:center;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;
+  padding:0 3px;
+}
+.cat-pill .pill-count {
+  font-family:'Inter',sans-serif; font-size:18px; font-weight:700; line-height:1;
+}
+.cat-pill.active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.cat-pill .pill-dot {
+  width:6px; height:6px; border-radius:50%; background:var(--accent);
+  position:absolute; top:5px; right:6px; display:none;
+}
+.cat-pill.active .pill-dot { display:block; }
+
+/* cat pill accents */
+.cat-pill[data-cat="urgent-important"]    { --accent:var(--red);    --accent-bg:#FFF5F5; }
+.cat-pill[data-cat="urgent-notimportant"] { --accent:var(--orange);  --accent-bg:#FFF8F3; }
+.cat-pill[data-cat="noturgent-important"] { --accent:var(--blue);    --accent-bg:#F0F4FF; }
+.cat-pill[data-cat="noturgent-notimportant"] { --accent:var(--grey); --accent-bg:#F7F7F7; }
+
+.cat-pill[data-cat="urgent-important"]    .pill-count,
+.cat-pill[data-cat="urgent-important"]    .pill-label { color:var(--red); }
+.cat-pill[data-cat="urgent-notimportant"] .pill-count,
+.cat-pill[data-cat="urgent-notimportant"] .pill-label { color:var(--orange); }
+.cat-pill[data-cat="noturgent-important"] .pill-count,
+.cat-pill[data-cat="noturgent-important"] .pill-label { color:var(--blue); }
+.cat-pill[data-cat="noturgent-notimportant"] .pill-count,
+.cat-pill[data-cat="noturgent-notimportant"] .pill-label { color:var(--grey); }
+
+/* Current category title + add btn */
+.cat-title-row {
+  flex-shrink:0;
+  display:flex; align-items:center; gap:8px;
+  padding: 8px 14px 6px;
+}
+.cat-title-text {
+  font-size:13px; font-weight:700; flex:1;
+}
+.cat-add-btn {
+  padding:5px 14px; border-radius:8px; border:none;
+  background:var(--pmg); color:#fff;
+  font-family:'Noto Sans JP',sans-serif; font-size:12px; font-weight:700;
+  cursor:pointer; flex-shrink:0;
+}
+.cat-add-btn:active { background:var(--pmg-dark); }
+
+/* Task list — fills remaining space */
+.task-list {
+  flex:1; overflow-y:auto; padding:4px 10px 6px;
+  display:flex; flex-direction:column; gap:4px;
+  -webkit-overflow-scrolling:touch;
+}
+.task-list::-webkit-scrollbar { width:3px; }
+.task-list::-webkit-scrollbar-thumb { background:var(--pmg-border); border-radius:2px; }
+
+/* drop highlight on task-list */
+.task-list.drag-over { outline: 2px dashed var(--pmg-light); outline-offset: -4px; border-radius:8px; }
+
+/* Empty state */
+.empty-state {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:8px;
+  color:#C0B0CC; font-size:13px;
+  padding-bottom:20px;
+}
+.empty-state .empty-icon { font-size:36px; }
+
+/* ── TASK CARD (compact, priority view) ── */
+.task-card {
+  background:#fff;
+  border:1.5px solid #EAD8F2;
+  border-radius:8px;
+  padding:7px 8px 7px 10px;
+  display:flex; align-items:center; gap:7px;
+  box-shadow:0 1px 3px rgba(85,4,107,0.07);
+  cursor:grab; user-select:none; -webkit-user-select:none;
+  touch-action:none;
+  transition:opacity 0.15s;
+  flex-shrink:0;
+  min-height:0;
+}
+.task-card.dragging { opacity:0.35; }
+.task-card.touch-clone {
+  position:fixed; z-index:999; pointer-events:none;
+  box-shadow:0 8px 28px rgba(85,4,107,0.28);
+  opacity:0.93; transform:rotate(1.5deg) scale(1.04);
+  transition:none; width:260px;
+}
+.drag-dots { color:#D0BBDF; font-size:14px; flex-shrink:0; line-height:1; }
+.task-card-inner {
+  display:flex; align-items:center; flex:1; min-width:0; gap:6px; flex-wrap:wrap;
+}
+.task-text {
+  font-size:12.5px; line-height:1.35; color:#1a1a2e;
+  word-break:break-all; flex:1; min-width:0;
+}
+
+/* schedule tag — inline beside text */
+.sched-tag {
+  display:inline-flex; align-items:center; gap:2px;
+  font-size:9.5px; font-weight:700; white-space:nowrap;
+  border-radius:4px; padding:1px 6px; flex-shrink:0;
+}
+.sched-tag.today    { background:#FFF0F0; color:var(--red); }
+.sched-tag.nice     { background:#F0FBF0; color:var(--green); }
+.sched-tag.tomorrow { background:#FFF6EC; color:var(--amber); }
+
+/* action buttons — horizontal, compact */
+.task-actions-col {
+  display:flex; flex-direction:row; gap:4px; flex-shrink:0; align-items:center;
+}
+.btn-done {
+  width:26px; height:26px; border-radius:7px; border:none;
+  font-size:13px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.btn-done { background:#E8F5E9; color:var(--green); }
+.btn-done:active { background:#C8E6C9; }
+
+
+/* ── SCHEDULE PANEL (today / nice / tomorrow) ── */
+.sched-panel-inner {
+  flex:1; overflow-y:auto; padding:10px 12px;
+  display:flex; flex-direction:column; gap:6px;
+  -webkit-overflow-scrolling:touch;
+}
+.sched-col-header {
+  display:flex; align-items:center; gap:8px;
+  padding:0 2px 4px;
+  flex-shrink:0;
+}
+.sched-col-accent { width:5px; height:20px; border-radius:3px; flex-shrink:0; }
+.sched-col-title { font-size:14px; font-weight:700; flex:1; }
+.sched-col-count {
+  font-family:'Inter',sans-serif; font-size:11px; font-weight:700;
+  background:var(--pmg-bg); color:var(--pmg); border-radius:10px;
+  padding:2px 9px; min-width:22px; text-align:center;
+}
+.sched-add-btn {
+  padding:5px 12px; border-radius:8px; border:none;
+  background:var(--pmg); color:#fff;
+  font-family:'Noto Sans JP',sans-serif; font-size:12px; font-weight:700; cursor:pointer;
+}
+.sched-add-btn:active { background:var(--pmg-dark); }
+.sched-drop-zone {
+  flex:1; min-height:80px;
+  border-radius:10px; transition:outline 0.2s;
+  display:flex; flex-direction:column; gap:6px;
+}
+.sched-drop-zone.drag-over { outline:2px dashed var(--pmg-light); outline-offset:-2px; }
+
+/* small card for schedule */
+.task-card-sm {
+  background:#fff; border:1.5px solid #EAD8F2; border-radius:8px;
+  padding:7px 8px 7px 10px; display:flex; align-items:center; gap:7px;
+  box-shadow:0 1px 3px rgba(85,4,107,0.07);
+  cursor:grab; user-select:none; -webkit-user-select:none; touch-action:none;
+  transition:opacity 0.15s; flex-shrink:0;
+}
+.task-card-sm.dragging { opacity:0.35; }
+.task-card-sm .task-text { font-size:12.5px; line-height:1.35; flex:1; color:#1a1a2e; word-break:break-all; }
+.task-card-sm .task-actions-col { display:flex; flex-direction:row; gap:4px; flex-shrink:0; align-items:center; }
+
+/* ── BOTTOM BAR ── */
+.bottom-bar {
+  position:fixed; bottom:0; left:0; right:0;
+  height:var(--bottom-h);
+  background:#fff; border-top:1.5px solid var(--pmg-border);
+  display:flex; align-items:center; padding:0 12px; gap:8px; z-index:60;
+}
+.done-drop {
+  flex:1; height:38px; border:2px dashed #A5D6A7; border-radius:10px;
+  background:#F1FBF3; display:flex; align-items:center; justify-content:center;
+  gap:7px; font-size:11px; color:var(--green); font-weight:600;
+  transition:background 0.2s, border-color 0.2s;
+}
+.done-drop.drag-over { background:#C8E6C9; border-color:var(--green); border-style:solid; }
+.done-badge {
+  font-family:'Inter',sans-serif; font-size:11px; font-weight:700;
+  background:var(--green); color:#fff; border-radius:10px;
+  padding:1px 7px; min-width:20px; text-align:center;
+}
+.done-clear-btn {
+  background:none; border:1px solid var(--pmg-border); border-radius:8px;
+  padding:6px 10px; font-size:11px; font-family:'Noto Sans JP',sans-serif;
+  color:#999; cursor:pointer; display:none; flex-shrink:0;
+}
+.done-clear-btn.visible { display:block; }
+.done-clear-btn:active { background:var(--pmg-bg); }
+
+/* ── MODALS ── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(85,4,107,0.4);
+  z-index:100; display:flex; align-items:flex-end; backdrop-filter:blur(3px);
+}
+.modal-overlay.hidden { display:none; }
+.modal-sheet {
+  background:#fff; border-radius:20px 20px 0 0;
+  padding:20px 24px 36px; width:100%; max-width:520px;
+  margin:0 auto;
+  box-shadow:0 -8px 32px rgba(85,4,107,0.18);
+  max-height:92vh; overflow-y:auto;
+}
+@media (min-width: 600px) {
+  .modal-overlay { align-items: center; }
+  .modal-sheet { border-radius: 16px; max-width: 460px; }
+}
+.modal-handle { width:36px; height:4px; background:#DDD; border-radius:2px; margin:0 auto 16px; }
+.modal-sheet h3 { font-size:16px; color:var(--pmg); margin-bottom:12px; font-weight:700; }
+.modal-sheet textarea {
+  width:100%; border:1.5px solid var(--pmg-border); border-radius:10px;
+  padding:12px 14px; font-family:'Noto Sans JP',sans-serif; font-size:14px;
+  resize:none; outline:none; color:#1a1a2e; line-height:1.5; height:88px;
+}
+.modal-sheet textarea:focus { border-color:var(--pmg-light); }
+.modal-sheet select {
+  width:100%; border:1.5px solid var(--pmg-border); border-radius:10px;
+  padding:9px 10px; font-family:'Noto Sans JP',sans-serif; font-size:13px;
+  color:#1a1a2e; background:#fff; outline:none;
+}
+.modal-sheet select:focus { border-color:var(--pmg-light); }
+.modal-select-row {
+  display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;
+}
+.modal-select-group { display:flex; flex-direction:column; gap:4px; }
+.modal-select-label {
+  font-size:10px; font-weight:700; color:var(--pmg); letter-spacing:.04em;
+}
+.modal-actions { display:flex; gap:10px; margin-top:14px; }
+.btn-cancel {
+  flex:1; padding:13px; border:1.5px solid var(--pmg-border); border-radius:10px;
+  background:#fff; font-family:'Noto Sans JP',sans-serif; font-size:14px; color:#888; cursor:pointer;
+}
+.btn-submit {
+  flex:2; padding:13px; border:none; border-radius:10px;
+  background:var(--pmg); color:#fff;
+  font-family:'Noto Sans JP',sans-serif; font-size:14px; font-weight:700; cursor:pointer;
+}
+.btn-submit:active { background:var(--pmg-dark); }
+
+/* Move grid */
+.move-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.move-btn {
+  padding:10px 6px; border-radius:9px; border:1.5px solid var(--pmg-border);
+  background:var(--pmg-bg); font-family:'Noto Sans JP',sans-serif; font-size:11px;
+  font-weight:600; color:var(--pmg); cursor:pointer; text-align:center; line-height:1.4;
+}
+.move-btn:active { background:#E5D0EE; }
+.move-btn.current { border-color:var(--pmg); background:#EDD7F7; opacity:.55; pointer-events:none; }
+.move-btn.done-btn { border-color:var(--green); color:var(--green); background:#F1FBF3; }
+.move-btn.done-btn:active { background:#C8E6C9; }
+
+/* Toast */
+.toast {
+  position:fixed; bottom:calc(var(--bottom-h) + 12px); left:50%; transform:translateX(-50%);
+  background:#333; color:#fff; font-size:12px; padding:8px 18px; border-radius:20px;
+  z-index:200; opacity:0; transition:opacity 0.3s; white-space:nowrap; pointer-events:none;
+}
+.toast.show { opacity:1; }
+
+/* ── MEMBER CHIPS ── */
+.member-row {
+  display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;
+}
+.member-chip {
+  flex:1; min-width:60px;
+  padding:8px 4px; border-radius:10px; border:2px solid transparent;
+  font-family:'Noto Sans JP',sans-serif; font-size:13px; font-weight:700;
+  text-align:center; cursor:pointer; transition:border-color 0.15s, opacity 0.15s;
+  background: var(--chip-bg); color: var(--chip-color);
+  opacity: 0.45;
+}
+.member-chip.selected { border-color: var(--chip-color); opacity:1; }
+.member-chip[data-m="inamori"] { --chip-bg:#FFF0F5; --chip-color:#C2185B; }
+.member-chip[data-m="abe"]     { --chip-bg:#EEF2FF; --chip-color:#3949AB; }
+.member-chip[data-m="iiyoshi"] { --chip-bg:#F0FBF0; --chip-color:#2E7D32; }
+.member-chip[data-m="none"]    { --chip-bg:#F5F5F5; --chip-color:#9E9E9E; }
+
+/* assignee badge on card */
+.assignee-badge {
+  font-size:10px; font-weight:700; border-radius:4px;
+  padding:1px 6px; white-space:nowrap; flex-shrink:0;
+}
+.assignee-badge.inamori { background:#FFF0F5; color:#C2185B; }
+.assignee-badge.abe     { background:#EEF2FF; color:#3949AB; }
+.assignee-badge.iiyoshi { background:#F0FBF0; color:#2E7D32; }
+
+.done-from-edit-btn {
+  display:block; width:100%; margin-top:10px;
+  padding:11px; border-radius:10px; border:1.5px solid #A5D6A7;
+  background:#F1FBF3; color:var(--green);
+  font-family:'Noto Sans JP',sans-serif; font-size:13px; font-weight:700;
+  cursor:pointer; text-align:center;
+}
+.done-from-edit-btn:active { background:#C8E6C9; }
+
+/* Loading overlay */
+.loading-overlay {
+  position:fixed; inset:0; background:var(--pmg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:999; gap:16px;
+}
+.loading-overlay .loading-logo {
+  font-family:'Inter',sans-serif; font-size:32px; font-weight:700; color:#fff; letter-spacing:.05em;
+}
+.loading-overlay .loading-logo span { color:#E0B8F0; }
+.loading-overlay .loading-sub { font-size:13px; color:rgba(255,255,255,0.6); }
+.loading-overlay .spinner {
+  width:32px; height:32px; border:3px solid rgba(255,255,255,0.2);
+  border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* overtime toggle */
+.overtime-row {
+  display:none;
+  margin-top:8px;
+}
+.overtime-row.visible { display:block; }
+.overtime-label-text {
+  font-size:10px; font-weight:700; color:var(--pmg); letter-spacing:.04em;
+  margin-bottom:6px;
+  display:flex; align-items:center; gap:4px;
+}
+.overtime-label-text .req { color:var(--red); font-size:11px; }
+.overtime-toggle {
+  display:grid; grid-template-columns:1fr 1fr; gap:6px;
+}
+.ot-btn {
+  padding:11px 8px; border-radius:10px; border:2px solid var(--pmg-border);
+  background:#fff; font-family:'Noto Sans JP',sans-serif; font-size:13px;
+  font-weight:700; text-align:center; cursor:pointer;
+  transition:border-color 0.15s, background 0.15s, color 0.15s;
+  color:#aaa;
+}
+.ot-btn.selected-regular { border-color:#3949AB; background:#EEF2FF; color:#3949AB; }
+.ot-btn.selected-overtime { border-color:#E65100; background:#FFF3EC; color:#E65100; }
+
+/* overtime badge on card */
+.ot-badge {
+  font-size:9.5px; font-weight:700; border-radius:4px;
+  padding:1px 6px; white-space:nowrap; flex-shrink:0;
+}
+.ot-badge.regular  { background:#EEF2FF; color:#3949AB; }
+.ot-badge.overtime { background:#FFF3EC; color:#E65100; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-logo">PMG<span>MA</span></div>
+  <div class="spinner"></div>
+  <div class="loading-sub">データを読み込み中...</div>
+</div>
+<header>
+  <div class="logo">PMG<span>MA</span></div>
+  <div class="header-sub">タスクボード</div>
+  <button class="header-add" onclick="openAddModal(null)">+</button>
+</header>
+
+<!-- NAV -->
+<nav class="nav-tabs">
+  <button class="nav-btn active" data-tab="priority" onclick="switchTab('priority')">
+    <span class="nav-icon">🎯</span><span>優先度</span>
+    <span class="nav-badge" id="nb-priority"></span>
+  </button>
+  <button class="nav-btn" data-tab="inbox" onclick="switchTab('inbox')">
+    <span class="nav-icon">📥</span><span>未分類</span>
+    <span class="nav-badge" id="nb-inbox"></span>
+  </button>
+  <button class="nav-btn" data-tab="today-regular" onclick="switchTab('today-regular')">
+    <span class="nav-icon">🔴</span><span>本日定時内</span>
+    <span class="nav-badge" id="nb-today-regular"></span>
+  </button>
+  <button class="nav-btn" data-tab="today-overtime" onclick="switchTab('today-overtime')">
+    <span class="nav-icon">🌙</span><span>本日定時外</span>
+    <span class="nav-badge" id="nb-today-overtime"></span>
+  </button>
+  <button class="nav-btn" data-tab="nice" onclick="switchTab('nice')">
+    <span class="nav-icon">🟢</span><span>本日できたら</span>
+    <span class="nav-badge" id="nb-nice"></span>
+  </button>
+  <button class="nav-btn" data-tab="tomorrow" onclick="switchTab('tomorrow')">
+    <span class="nav-icon">🟠</span><span>明日</span>
+    <span class="nav-badge" id="nb-tomorrow"></span>
+  </button>
+</nav>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- ① PRIORITY PANEL -->
+  <div class="panel active" id="panel-priority">
+
+    <!-- 4 pills -->
+    <div class="cat-bar">
+      <div class="cat-pill active" data-cat="urgent-important" onclick="selectCat('urgent-important')">
+        <div class="pill-dot"></div>
+        <div class="pill-count" id="pill-count-urgent-important">0</div>
+        <div class="pill-label">急ぎ＆重要</div>
+      </div>
+      <div class="cat-pill" data-cat="urgent-notimportant" onclick="selectCat('urgent-notimportant')">
+        <div class="pill-dot"></div>
+        <div class="pill-count" id="pill-count-urgent-notimportant">0</div>
+        <div class="pill-label">急ぎ・重要でない</div>
+      </div>
+      <div class="cat-pill" data-cat="noturgent-important" onclick="selectCat('noturgent-important')">
+        <div class="pill-dot"></div>
+        <div class="pill-count" id="pill-count-noturgent-important">0</div>
+        <div class="pill-label">重要・急ぎでない</div>
+      </div>
+      <div class="cat-pill" data-cat="noturgent-notimportant" onclick="selectCat('noturgent-notimportant')">
+        <div class="pill-dot"></div>
+        <div class="pill-count" id="pill-count-noturgent-notimportant">0</div>
+        <div class="pill-label">どちらでもない</div>
+      </div>
+    </div>
+
+    <!-- Current cat title -->
+    <div class="cat-title-row">
+      <div class="cat-title-text" id="cat-title-text">① 急ぎ＆重要</div>
+      <button class="cat-add-btn" onclick="openAddModal(currentCat)">＋ 追加</button>
+    </div>
+
+    <!-- Task list (drag target) -->
+    <div class="task-list" id="priority-task-list"
+         ondragover="onDragOver(event,'list')" ondragleave="onDragLeave(event,'list')" ondrop="onDropList(event)">
+    </div>
+
+  </div>
+
+  <!-- ② INBOX PANEL -->
+  <div class="panel" id="panel-inbox">
+    <div class="sched-panel-inner"
+         ondragover="onDragOver(event,'sched')" ondragleave="onDragLeave(event,'sched')" ondrop="onDrop(event,'inbox')">
+      <div class="sched-col-header">
+        <div class="sched-col-accent" style="background:#607D8B"></div>
+        <div class="sched-col-title" style="color:#607D8B">📥 未分類タスク</div>
+        <span class="sched-col-count" id="sched-count-inbox">0</span>
+        <button class="sched-add-btn" style="background:#607D8B;" onclick="openAddModal('inbox')">＋</button>
+      </div>
+      <div style="padding:6px 12px 2px;font-size:11px;color:#999;">タップして優先度・期日を設定してください</div>
+      <div class="sched-drop-zone" id="col-inbox"></div>
+    </div>
+  </div>
+
+  <!-- ③ TODAY-REGULAR PANEL -->
+  <div class="panel" id="panel-today-regular">
+    <div class="sched-panel-inner"
+         ondragover="onDragOver(event,'sched')" ondragleave="onDragLeave(event,'sched')" ondrop="onDrop(event,'today-regular')">
+      <div class="sched-col-header">
+        <div class="sched-col-accent" style="background:var(--red)"></div>
+        <div class="sched-col-title" style="color:var(--red)">🔴 本日定時内</div>
+        <span class="sched-col-count" id="sched-count-today-regular">0</span>
+        <button class="sched-add-btn" onclick="openAddModal('today-regular')">＋</button>
+      </div>
+      <div class="sched-drop-zone" id="col-today-regular"></div>
+    </div>
+  </div>
+
+  <!-- ③ TODAY-OVERTIME PANEL -->
+  <div class="panel" id="panel-today-overtime">
+    <div class="sched-panel-inner"
+         ondragover="onDragOver(event,'sched')" ondragleave="onDragLeave(event,'sched')" ondrop="onDrop(event,'today-overtime')">
+      <div class="sched-col-header">
+        <div class="sched-col-accent" style="background:#6A1B9A"></div>
+        <div class="sched-col-title" style="color:#6A1B9A">🌙 本日定時外</div>
+        <span class="sched-col-count" id="sched-count-today-overtime">0</span>
+        <button class="sched-add-btn" onclick="openAddModal('today-overtime')">＋</button>
+      </div>
+      <div class="sched-drop-zone" id="col-today-overtime"></div>
+    </div>
+  </div>
+
+  <!-- ④ NICE PANEL -->
+  <div class="panel" id="panel-nice">
+    <div class="sched-panel-inner"
+         ondragover="onDragOver(event,'sched')" ondragleave="onDragLeave(event,'sched')" ondrop="onDrop(event,'nice')">
+      <div class="sched-col-header">
+        <div class="sched-col-accent" style="background:var(--green)"></div>
+        <div class="sched-col-title" style="color:var(--green)">🟢 本日できたら</div>
+        <span class="sched-col-count" id="sched-count-nice">0</span>
+        <button class="sched-add-btn" onclick="openAddModal('nice')">＋</button>
+      </div>
+      <div class="sched-drop-zone" id="col-nice"></div>
+    </div>
+  </div>
+
+  <!-- ⑤ TOMORROW PANEL -->
+  <div class="panel" id="panel-tomorrow">
+    <div class="sched-panel-inner"
+         ondragover="onDragOver(event,'sched')" ondragleave="onDragLeave(event,'sched')" ondrop="onDrop(event,'tomorrow')">
+      <div class="sched-col-header">
+        <div class="sched-col-accent" style="background:var(--amber)"></div>
+        <div class="sched-col-title" style="color:var(--amber)">🟠 明日</div>
+        <span class="sched-col-count" id="sched-count-tomorrow">0</span>
+        <button class="sched-add-btn" onclick="openAddModal('tomorrow')">＋</button>
+      </div>
+      <div class="sched-drop-zone" id="col-tomorrow"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar">
+  <div class="done-drop" id="done-drop"
+       ondragover="onDragOver(event,'done')" ondragleave="onDragLeave(event,'done')" ondrop="onDrop(event,'done')">
+    <span>✅</span><span>完了 — ドロップ or ✓ ボタン</span>
+    <span class="done-badge" id="done-count">0</span>
+  </div>
+  <button class="done-clear-btn" id="done-clear-btn" onclick="clearDone()">消去</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay hidden" id="add-modal" onclick="closeAddModalOutside(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 id="add-modal-title">タスクを追加</h3>
+    <textarea id="task-input" placeholder="タスク内容を入力…" maxlength="200"></textarea>
+
+    <!-- 置き場所モード表示 -->
+    <div id="add-mode-priority" style="display:none;margin-top:10px;">
+      <label class="modal-select-label">優先度 <span style="font-weight:400;color:#bbb;">（任意）</span></label>
+      <select id="task-col" style="width:100%;margin-top:4px;border:1.5px solid var(--pmg-border);border-radius:10px;padding:9px 10px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#1a1a2e;background:#fff;outline:none;">
+        <option value="urgent-important">① 急ぎ＆重要</option>
+        <option value="urgent-notimportant">② 急ぎ・重要でない</option>
+        <option value="noturgent-important">③ 重要・急ぎでない</option>
+        <option value="noturgent-notimportant">④ どちらでもない</option>
+      </select>
+      <label class="modal-select-label" style="margin-top:10px;display:block;">スケジュールタグ <span style="font-weight:400;color:#bbb;">（任意）</span></label>
+      <select id="task-schedtag" style="width:100%;margin-top:4px;border:1.5px solid var(--pmg-border);border-radius:10px;padding:9px 10px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#1a1a2e;background:#fff;outline:none;">
+        <option value="">なし</option>
+        <option value="today-regular">🔴 本日定時内</option>
+        <option value="today-overtime">🌙 本日定時外</option>
+        <option value="nice">🟢 本日できたら</option>
+        <option value="tomorrow">🟠 明日</option>
+      </select>
+    </div>
+
+    <!-- スケジュールモード -->
+    <div id="add-mode-schedule" style="display:none;margin-top:10px;">
+      <div style="background:var(--pmg-bg);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--pmg);font-weight:700;text-align:center;margin-bottom:12px;" id="add-sched-label"></div>
+      <label class="modal-select-label">優先度 <span style="font-weight:400;color:#bbb;">（任意）</span></label>
+      <select id="task-col-sched" style="width:100%;margin-top:4px;border:1.5px solid var(--pmg-border);border-radius:10px;padding:9px 12px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#1a1a2e;background:#fff;outline:none;">
+        <option value="">-- 選択しない --</option>
+        <option value="urgent-important">① 急ぎ＆重要</option>
+        <option value="urgent-notimportant">② 急ぎ・重要でない</option>
+        <option value="noturgent-important">③ 重要・急ぎでない</option>
+        <option value="noturgent-notimportant">④ どちらでもない</option>
+      </select>
+    </div>
+
+    <!-- 担当者 -->
+    <div style="margin-top:10px;">
+      <div class="modal-select-label">担当者</div>
+      <div class="member-row">
+        <div class="member-chip" data-m="inamori" onclick="selectMember('inamori')">稲森</div>
+        <div class="member-chip" data-m="abe"     onclick="selectMember('abe')">阿部</div>
+        <div class="member-chip" data-m="iiyoshi" onclick="selectMember('iiyoshi')">飯吉</div>
+        <div class="member-chip selected" data-m="none"  onclick="selectMember('none')">未定</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAddModal()">キャンセル</button>
+      <button class="btn-submit" onclick="addTask()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay hidden" id="edit-modal" onclick="closeEditModalOutside(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3>タスクを編集</h3>
+    <textarea id="edit-input" maxlength="200"></textarea>
+    <div style="margin-top:10px;">
+      <div class="modal-select-label">担当者</div>
+      <div class="member-row" id="edit-member-row">
+        <div class="member-chip" data-m="inamori" onclick="selectEditMember('inamori')">稲森</div>
+        <div class="member-chip" data-m="abe"     onclick="selectEditMember('abe')">阿部</div>
+        <div class="member-chip" data-m="iiyoshi" onclick="selectEditMember('iiyoshi')">飯吉</div>
+        <div class="member-chip" data-m="none"    onclick="selectEditMember('none')">未定</div>
+      </div>
+    </div>
+    <div class="modal-select-row" style="margin-top:10px;">
+      <div class="modal-select-group">
+        <label class="modal-select-label">優先度</label>
+        <select id="edit-col">
+          <option value="urgent-important">① 急ぎ＆重要</option>
+          <option value="urgent-notimportant">② 急ぎ・重要でない</option>
+          <option value="noturgent-important">③ 重要・急ぎでない</option>
+          <option value="noturgent-notimportant">④ どちらでもない</option>
+        </select>
+      </div>
+      <div class="modal-select-group">
+        <label class="modal-select-label">スケジュール</label>
+        <select id="edit-sched" onchange="onSchedChange('edit')">
+          <option value="">なし（優先度タブへ）</option>
+          <option value="today-regular">🔴 本日定時内</option>
+          <option value="today-overtime">🌙 本日定時外</option>
+          <option value="nice">🟢 本日できたら</option>
+          <option value="tomorrow">🟠 明日</option>
+          <option value="inbox">📥 未分類</option>
+        </select>
+      </div>
+    </div>
+    <div class="overtime-row" id="edit-overtime-row">
+      <div class="overtime-label-text">定時内 / 定時外 <span class="req">※必須</span></div>
+      <div class="overtime-toggle">
+        <div class="ot-btn" id="edit-ot-regular"  onclick="selectOT('edit','regular')">🏢 定時内</div>
+        <div class="ot-btn" id="edit-ot-overtime" onclick="selectOT('edit','overtime')">🌙 定時外</div>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn-cancel" style="color:#E53935;border-color:#FFCDD2;" onclick="deleteTaskFromEdit()">削除</button>
+      <button class="btn-cancel" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn-submit" onclick="saveEdit()">保存</button>
+    </div>
+    <button class="done-from-edit-btn" onclick="doneFromEdit()">✅ 完了にする</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+// ── FIREBASE ──
+const firebaseConfig = {
+  apiKey: "AIzaSyD4qAk4Ty3vr_WWCfQPvAV2Z9Anc6s-WpA",
+  authDomain: "pmg-taskboard.firebaseapp.com",
+  databaseURL: "https://pmg-taskboard-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pmg-taskboard",
+  storageBucket: "pmg-taskboard.firebasestorage.app",
+  messagingSenderId: "289491893335",
+  appId: "1:289491893335:web:a02aeb74549495c36cf712"
+};
+let db, tasksRef, doneRef;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  tasksRef = db.ref('tasks');
+  doneRef  = db.ref('done');
+} catch(e) {
+  console.error('Firebase init error:', e);
+}
+
+// ── CONSTANTS ──
+const COL_META = {
+  'urgent-important':    { label:'① 急ぎ＆重要',     short:'急ぎ＆重要',      color:'var(--red)' },
+  'urgent-notimportant': { label:'② 急ぎ・重要でない', short:'急ぎ・重要でない', color:'var(--orange)' },
+  'noturgent-important': { label:'③ 重要・急ぎでない', short:'重要・急ぎでない', color:'var(--blue)' },
+  'noturgent-notimportant': { label:'④ どちらでもない', short:'どちらでもない',  color:'var(--grey)' },
+  'today-regular':  { label:'🔴 本日定時内', short:'定時内', color:'var(--red)' },
+  'today-overtime': { label:'🌙 本日定時外', short:'定時外', color:'#6A1B9A' },
+  'nice':           { label:'🟢 本日できたら', short:'できたら', color:'var(--green)' },
+  'tomorrow':       { label:'🟠 明日',         short:'明日',    color:'var(--amber)' },
+  'inbox':          { label:'📥 未分類',        short:'未分類',  color:'#607D8B' },
+};
+const PRIORITY_COLS   = ['urgent-important','urgent-notimportant','noturgent-important','noturgent-notimportant'];
+const SCHEDULE_COLS   = ['today-regular','today-overtime','nice','tomorrow','inbox'];
+const ALL_COLS        = [...PRIORITY_COLS, ...SCHEDULE_COLS];
+
+// ── STATE ──
+let tasks     = [];
+let doneTasks = [];
+
+let activeTab = 'priority';
+let selectedMember = 'none';
+const MEMBERS = {
+  inamori: { label:'稲森', cls:'inamori' },
+  abe:     { label:'阿部', cls:'abe' },
+  iiyoshi: { label:'飯吉', cls:'iiyoshi' },
+  none:    { label:'', cls:'' },
+};
+function selectMember(m) {
+  selectedMember = m;
+  document.querySelectorAll('.member-chip').forEach(c => {
+    c.classList.toggle('selected', c.dataset.m === m);
+  });
+}
+let currentCat = 'urgent-important';
+let dragId = null;
+
+function save() {
+  // Convert arrays to objects for Firebase
+  const tasksObj = {};
+  tasks.forEach(t => { tasksObj[t.id] = t; });
+  tasksRef.set(tasksObj);
+
+  const doneObj = {};
+  doneTasks.forEach(t => { doneObj[t.id] = t; });
+  doneRef.set(doneObj);
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── RENDER ──
+function render() {
+  renderPriorityList();
+  renderScheduleCols();
+  renderCounts();
+}
+
+function renderPriorityList() {
+  const list = document.getElementById('priority-task-list');
+  list.innerHTML = '';
+  // Show tasks where priority matches (or col matches for legacy data)
+  const catTasks = tasks.filter(t => t.priority === currentCat || (!t.priority && t.col === currentCat));
+
+  if (catTasks.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><div>タスクなし</div></div>`;
+    return;
+  }
+
+  catTasks.forEach(t => {
+    const card = makePriorityCard(t);
+    list.appendChild(card);
+  });
+}
+
+function makePriorityCard(t) {
+  const card = document.createElement('div');
+  card.className = 'task-card';
+  card.dataset.id = t.id;
+  card.draggable = true;
+
+  // Schedule tag: use task.schedCol field
+  const tagKey = t.schedCol || null;
+  const TAG_LABELS = { 'today-regular':'🔴 本日定時内', 'today-overtime':'🌙 本日定時外', nice:'🟢 本日できたら', tomorrow:'🟠 明日' };
+  const tagHtml = tagKey && TAG_LABELS[tagKey]
+    ? `<span class="sched-tag ${tagKey}">${TAG_LABELS[tagKey]}</span>`
+    : '';
+  const otHtml = (tagKey === 'today' && t.overtime)
+    ? `<span class="ot-badge ${t.overtime}">${t.overtime === 'regular' ? '🏢定時内' : '🌙定時外'}</span>`
+    : '';
+
+  const memberHtml = t.member && MEMBERS[t.member]
+    ? `<span class="assignee-badge ${t.member}">${MEMBERS[t.member].label}</span>`
+    : '';
+
+  card.innerHTML = `
+    <span class="drag-dots">⠿</span>
+    <div class="task-card-inner">
+      <span class="task-text">${escHtml(t.text)}</span>${tagHtml}${otHtml}${memberHtml}
+    </div>
+    <div class="task-actions-col">
+      <button class="btn-done" onclick="markDone('${t.id}')">✓</button>
+    </div>`;
+
+  card.addEventListener('dragstart', e => { dragId = t.id; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+  card.addEventListener('dragend',   () => { card.classList.remove('dragging'); dragId = null; });
+  card.addEventListener('click', e => { if (!e.target.closest('button')) openEditModal(t.id); });
+  setupTouch(card, t.id);
+  return card;
+}
+
+function makeSmallCard(t) {
+  const card = document.createElement('div');
+  card.className = 'task-card-sm';
+  card.dataset.id = t.id;
+  card.draggable = true;
+  const smMemberHtml = t.member && MEMBERS[t.member]
+    ? `<span class="assignee-badge ${t.member}" style="font-size:9.5px;">${MEMBERS[t.member].label}</span>`
+    : '';
+  const smOtHtml = '';
+  const PRIORITY_LABELS_SM = { 'urgent-important':'①急重', 'urgent-notimportant':'②急', 'noturgent-important':'③重', 'noturgent-notimportant':'④' };
+  const smPriorityHtml = t.priority && PRIORITY_LABELS_SM[t.priority]
+    ? `<span style="font-size:9px;font-weight:700;background:#F3EEF5;color:var(--pmg);border-radius:4px;padding:1px 5px;white-space:nowrap;">${PRIORITY_LABELS_SM[t.priority]}</span>`
+    : '';
+  card.innerHTML = `
+    <span class="drag-dots" style="font-size:14px;color:#D0BBDF;">⠿</span>
+    <span class="task-text">${escHtml(t.text)}</span>
+    ${smPriorityHtml}${smMemberHtml}
+    <div class="task-actions-col">
+      <button class="btn-done" onclick="markDone('${t.id}')">✓</button>
+    </div>`;
+  card.addEventListener('dragstart', e => { dragId = t.id; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+  card.addEventListener('dragend',   () => { card.classList.remove('dragging'); dragId = null; });
+  card.addEventListener('click', e => { if (!e.target.closest('button')) openEditModal(t.id); });
+  setupTouch(card, t.id);
+  return card;
+}
+
+function renderScheduleCols() {
+  SCHEDULE_COLS.forEach(col => {
+    const el = document.getElementById('col-' + col);
+    if (!el) return;
+    el.innerHTML = '';
+
+    let colTasks;
+    if (col === 'inbox') {
+      // 未分類: 優先度か期日のどちらかが欠けているタスク（または両方なし）
+      colTasks = tasks.filter(t => {
+        const hasPriority = t.priority && PRIORITY_COLS.includes(t.priority);
+        const hasSched = t.schedCol && SCHEDULE_COLS.filter(c=>c!=='inbox').includes(t.schedCol);
+        return !hasPriority || !hasSched;
+      });
+    } else {
+      // 通常スケジュールタブ: schedColが一致するタスク
+      colTasks = tasks.filter(t => t.schedCol === col || t.col === col);
+    }
+
+    if (colTasks.length === 0) {
+      el.innerHTML = `<div class="empty-state" style="margin-top:24px;"><div class="empty-icon">✨</div><div>タスクなし</div></div>`;
+    } else {
+      colTasks.forEach(t => el.appendChild(makeSmallCard(t)));
+    }
+  });
+}
+
+function renderCounts() {
+  // Pill counts: count by priority field
+  PRIORITY_COLS.forEach(col => {
+    const n = tasks.filter(t => t.priority === col || (!t.priority && t.col === col)).length;
+    document.getElementById('pill-count-' + col).textContent = n;
+  });
+  // Nav badges
+  const priorityTotal = PRIORITY_COLS.reduce((s,c) => s + tasks.filter(t=>t.col===c).length, 0);
+  setBadge('nb-priority', priorityTotal);
+  SCHEDULE_COLS.forEach(col => {
+    if (col === 'inbox') return; // handled separately
+    const n = tasks.filter(t => t.schedCol === col || t.col === col).length;
+    setBadge('nb-' + col, n);
+    const el = document.getElementById('sched-count-' + col);
+    if (el) el.textContent = n;
+  });
+  // inbox badge: tasks missing priority OR sched
+  const inboxCount = tasks.filter(t => {
+    const hasPriority = t.priority && PRIORITY_COLS.includes(t.priority);
+    const hasSched = t.schedCol && SCHEDULE_COLS.filter(c=>c!=='inbox').includes(t.schedCol);
+    return !hasPriority || !hasSched;
+  }).length;
+  setBadge('nb-inbox', inboxCount);
+  const inboxCountEl = document.getElementById('sched-count-inbox');
+  if (inboxCountEl) inboxCountEl.textContent = inboxCount;
+  // Done
+  document.getElementById('done-count').textContent = doneTasks.length;
+  const cb = document.getElementById('done-clear-btn');
+  doneTasks.length > 0 ? cb.classList.add('visible') : cb.classList.remove('visible');
+}
+
+function setBadge(id, n) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = n > 0 ? n : '';
+  el.style.display = n > 0 ? 'block' : 'none';
+}
+
+// ── CATEGORY SWITCH ──
+const CAT_TITLES = {
+  'urgent-important':    '① 急ぎ＆重要',
+  'urgent-notimportant': '② 急ぎ・重要でない',
+  'noturgent-important': '③ 重要・急ぎでない',
+  'noturgent-notimportant': '④ どちらでもない',
+};
+
+function selectCat(cat) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.toggle('active', p.dataset.cat === cat));
+  document.getElementById('cat-title-text').textContent = CAT_TITLES[cat];
+  renderPriorityList();
+}
+
+// ── TAB SWITCH ──
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('panel-' + tab);
+  if (panel) panel.classList.add('active');
+}
+
+// ── DRAG / DROP ──
+function onDragOver(e, type) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  if (type === 'list') e.currentTarget.classList.add('drag-over');
+  else if (type === 'sched') e.currentTarget.classList.add('drag-over');
+  else if (type === 'done') e.currentTarget.classList.add('drag-over');
+}
+function onDragLeave(e, type) {
+  if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove('drag-over');
+}
+function onDropList(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragId) return;
+  const task = tasks.find(t => t.id === dragId);
+  if (task) { tasksRef.child(dragId).update({ col: currentCat }); showToast('移動しました'); }
+}
+function onDrop(e, targetCol) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragId) return;
+  if (targetCol === 'done') { markDone(dragId); return; }
+  if (dragId) { tasksRef.child(dragId).update({ col: targetCol }); showToast('移動しました'); }
+}
+
+// ── TOUCH DRAG ──
+function setupTouch(card, taskId) {
+  let clone = null, moved = false, sx, sy;
+
+  card.addEventListener('touchstart', e => {
+    if (e.target.closest('button')) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; moved = false;
+  }, { passive: true });
+
+  card.addEventListener('touchmove', e => {
+    const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
+    if (!moved && Math.hypot(dx, dy) < 8) return;
+    e.preventDefault(); moved = true;
+    if (!clone) {
+      dragId = taskId; card.classList.add('dragging');
+      clone = card.cloneNode(true);
+      clone.classList.add('touch-clone');
+      clone.style.width = Math.min(card.offsetWidth, 280) + 'px';
+      document.body.appendChild(clone);
+    }
+    clone.style.left = (e.touches[0].clientX - clone.offsetWidth / 2) + 'px';
+    clone.style.top  = (e.touches[0].clientY - 34) + 'px';
+    // Highlight
+    const cx = e.touches[0].clientX, cy = e.touches[0].clientY;
+    document.querySelectorAll('.task-list,.sched-drop-zone,.done-drop').forEach(el => {
+      el.classList.remove('drag-over');
+      const r = el.getBoundingClientRect();
+      if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) el.classList.add('drag-over');
+    });
+  }, { passive: false });
+
+  card.addEventListener('touchend', e => {
+    if (!moved || !clone) { dragId = null; return; }
+    const cx = e.changedTouches[0].clientX, cy = e.changedTouches[0].clientY;
+    let dropped = false;
+
+    // Priority list
+    const pl = document.getElementById('priority-task-list');
+    if (pl) {
+      pl.classList.remove('drag-over');
+      const r = pl.getBoundingClientRect();
+      if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
+        const task = tasks.find(t => t.id === dragId);
+        if (task) { task.col = currentCat; save(); render(); showToast('移動しました'); }
+        dropped = true;
+      }
+    }
+    // Schedule cols
+    if (!dropped) {
+      SCHEDULE_COLS.forEach(col => {
+        const el = document.getElementById('col-' + col);
+        if (!el) return;
+        el.classList.remove('drag-over');
+        const r = el.getBoundingClientRect();
+        if (!dropped && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
+          const task = tasks.find(t => t.id === dragId);
+          if (task) { tasksRef.child(dragId).update({ col: col }); showToast('移動しました'); }
+          dropped = true;
+        }
+      });
+    }
+    // Done
+    if (!dropped) {
+      const dd = document.getElementById('done-drop');
+      dd.classList.remove('drag-over');
+      const r = dd.getBoundingClientRect();
+      if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) { markDone(dragId); dropped = true; }
+    }
+
+    clone.remove(); clone = null; card.classList.remove('dragging'); dragId = null; moved = false;
+  });
+}
+
+// ── ACTIONS ──
+function markDone(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  // Move to done in Firebase
+  doneRef.child(id).set(task);
+  tasksRef.child(id).remove();
+  showToast('完了しました ✅');
+}
+function clearDone() {
+  if (!confirm(`完了済み ${doneTasks.length} 件を削除しますか？`)) return;
+  doneRef.remove();
+}
+
+// ── ADD MODAL ──
+let addModalCol = 'urgent-important'; // current target col
+
+function openAddModal(col) {
+  // Determine target col
+  if (col && PRIORITY_COLS.includes(col)) {
+    addModalCol = col;
+  } else if (col && SCHEDULE_COLS.includes(col)) {
+    addModalCol = col;
+  } else if (!col || col === null) {
+    // called from header + button: use activeTab context
+    if (activeTab === 'priority') addModalCol = currentCat || 'urgent-important';
+    else if (SCHEDULE_COLS.includes(activeTab)) addModalCol = activeTab;
+    else addModalCol = 'urgent-important';
+  } else {
+    addModalCol = col;
+  }
+
+  const isPriority = PRIORITY_COLS.includes(addModalCol);
+  const isSchedule = SCHEDULE_COLS.includes(addModalCol);
+
+  // Show/hide sections
+  document.getElementById('add-mode-priority').style.display = isPriority ? 'block' : 'none';
+  document.getElementById('add-mode-schedule').style.display = isSchedule ? 'block' : 'none';
+
+  if (isPriority) {
+    document.getElementById('task-col').value = addModalCol;
+    document.getElementById('task-schedtag').value = '';
+    document.getElementById('add-modal-title').textContent = 'タスクを追加（優先度）';
+  }
+  if (isSchedule) {
+    const labels = { 'today-regular':'🔴 本日定時内', 'today-overtime':'🌙 本日定時外', nice:'🟢 本日できたら', tomorrow:'🟠 明日', inbox:'📥 未分類' };
+    document.getElementById('add-sched-label').textContent = '追加先：' + (labels[addModalCol] || addModalCol);
+    document.getElementById('add-modal-title').textContent = 'タスクを追加（' + (labels[addModalCol] || addModalCol) + '）';
+    const schedColEl = document.getElementById('task-col-sched');
+    if (schedColEl) schedColEl.value = '';
+  }
+
+  // Reset member
+  selectedMember = 'none';
+  document.querySelectorAll('.member-chip').forEach(c => c.classList.toggle('selected', c.dataset.m === 'none'));
+  // Reset OT
+  addOT = null; resetOTBtns('add');
+  document.getElementById('add-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('task-input').focus(), 80);
+}
+function closeAddModal() {
+  document.getElementById('add-modal').classList.add('hidden');
+  document.getElementById('task-input').value = '';
+  selectedMember = 'none';
+  document.querySelectorAll('.member-chip').forEach(c => c.classList.toggle('selected', c.dataset.m === 'none'));
+  addOT = null; resetOTBtns('add');
+}
+function closeAddModalOutside(e) {
+  if (e.target === document.getElementById('add-modal')) closeAddModal();
+}
+function addTask() {
+  const text = document.getElementById('task-input').value.trim();
+  if (!text) return;
+  const col = addModalCol;
+  const member = selectedMember !== 'none' ? selectedMember : undefined;
+  // For priority cols: use selected priority + optional schedtag
+  // Determine priority and schedCol from inputs
+  let taskPriority = null;
+  let taskSchedCol = null;
+
+  if (PRIORITY_COLS.includes(col)) {
+    // 優先度タブから
+    taskPriority = document.getElementById('task-col').value || null;
+    taskSchedCol = document.getElementById('task-schedtag').value || null;
+  } else if (col === 'inbox') {
+    taskPriority = null;
+    taskSchedCol = null;
+  } else {
+    // スケジュールタブから
+    taskSchedCol = col;
+    taskPriority = document.getElementById('task-col-sched') ? (document.getElementById('task-col-sched').value || null) : null;
+  }
+
+  // Determine primary col (where task "lives")
+  // Priority: schedCol > priority > inbox
+  let finalCol;
+  if (taskSchedCol && taskSchedCol !== 'inbox') {
+    finalCol = taskSchedCol; // スケジュールタブに置く
+  } else if (taskPriority) {
+    finalCol = taskPriority; // 優先度タブに置く
+  } else {
+    finalCol = 'inbox'; // どちらもなし → 未分類
+  }
+
+  const newTask = {
+    id: 'task-' + Date.now(),
+    text,
+    col: finalCol,
+    schedCol: taskSchedCol !== finalCol ? taskSchedCol : null,
+    priority: taskPriority,
+    member: member || null,
+    overtime: null
+  };
+  tasksRef.child(newTask.id).set(newTask);
+  closeAddModal(); showToast('追加しました');
+  if (PRIORITY_COLS.includes(finalCol)) { switchTab('priority'); selectCat(finalCol); }
+  else switchTab(finalCol);
+}
+
+// ── EDIT MODAL ──
+let editId = null;
+let editMember = 'none';
+let addOT = null;   // 'regular' | 'overtime' | null
+let editOT = null;
+
+function onSchedChange(prefix) {
+  const val = document.getElementById(prefix === 'add' ? 'task-sched' : 'edit-sched').value;
+  const row = document.getElementById(prefix + '-overtime-row');
+  if (val === 'today') {
+    row.classList.add('visible');
+  } else {
+    row.classList.remove('visible');
+    if (prefix === 'add') addOT = null;
+    else editOT = null;
+    resetOTBtns(prefix);
+  }
+}
+function selectOT(prefix, val) {
+  if (prefix === 'add') addOT = val;
+  else editOT = val;
+  resetOTBtns(prefix);
+  document.getElementById(prefix + '-ot-' + val).classList.add('selected-' + val);
+}
+function resetOTBtns(prefix) {
+  ['regular','overtime'].forEach(v => {
+    const btn = document.getElementById(prefix + '-ot-' + v);
+    if (btn) btn.className = 'ot-btn';
+  });
+}
+
+function openMoveModal(id) { openEditModal(id); } // ↔ button alias
+
+function openEditModal(id) {
+  editId = id;
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  document.getElementById('edit-input').value = task.text;
+  // priority: use task.priority field, or fall back to col if it's a priority col
+  const editPriorityVal = task.priority || (PRIORITY_COLS.includes(task.col) ? task.col : '');
+  document.getElementById('edit-col').value = editPriorityVal;
+  // sched: use task.schedCol, or col if it's a sched col
+  const editSchedVal = task.schedCol || (SCHEDULE_COLS.filter(c=>c!=='inbox').includes(task.col) ? task.col : '');
+  document.getElementById('edit-sched').value = editSchedVal;
+  editMember = task.member || 'none';
+  document.querySelectorAll('#edit-member-row .member-chip').forEach(c =>
+    c.classList.toggle('selected', c.dataset.m === editMember)
+  );
+  document.getElementById('edit-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('edit-input').focus(), 80);
+}
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.add('hidden');
+  editId = null;
+}
+function closeEditModalOutside(e) {
+  if (e.target === document.getElementById('edit-modal')) closeEditModal();
+}
+function selectEditMember(m) {
+  editMember = m;
+  document.querySelectorAll('#edit-member-row .member-chip').forEach(c =>
+    c.classList.toggle('selected', c.dataset.m === m)
+  );
+}
+function saveEdit() {
+  const text = document.getElementById('edit-input').value.trim();
+  if (!text) return;
+  const task = tasks.find(t => t.id === editId);
+  if (!task) return;
+
+  const editPriority = document.getElementById('edit-col').value || null;
+  const editSched = document.getElementById('edit-sched').value || null;
+
+  // Determine primary col
+  let newCol;
+  if (editSched && SCHEDULE_COLS.filter(c=>c!=='inbox').includes(editSched)) {
+    newCol = editSched;
+  } else if (editPriority) {
+    newCol = editPriority;
+  } else {
+    newCol = 'inbox';
+  }
+
+  const updatedTask = {
+    ...task,
+    text,
+    col: newCol,
+    priority: editPriority,
+    schedCol: editSched,
+    member: editMember !== 'none' ? editMember : null,
+    overtime: null,
+  };
+  tasksRef.child(editId).set(updatedTask);
+  closeEditModal(); showToast('更新しました');
+  if (PRIORITY_COLS.includes(newCol)) { switchTab('priority'); selectCat(newCol); }
+  else switchTab(newCol);
+}
+function deleteTaskFromEdit() {
+  if (!confirm('このタスクを削除しますか？')) return;
+  tasksRef.child(editId).remove();
+  closeEditModal(); showToast('削除しました');
+}
+function doneFromEdit() {
+  markDone(editId); closeEditModal();
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ── INIT ──
+if (tasksRef) {
+  tasksRef.on('value', snap => {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.style.display = 'none';
+    const data = snap.val();
+    tasks = data ? Object.values(data) : [];
+    render();
+  }, err => {
+    console.error('DB read error:', err);
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+      overlay.querySelector('.loading-sub').textContent = 'DB接続エラー: ' + err.code;
+    }
+  });
+
+  doneRef.on('value', snap => {
+    const data = snap.val();
+    doneTasks = data ? Object.values(data) : [];
+    renderCounts();
+  });
+} else {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.querySelector('.loading-sub').textContent = 'Firebase初期化エラー';
+}
+</script>
+</body>
+</html>
