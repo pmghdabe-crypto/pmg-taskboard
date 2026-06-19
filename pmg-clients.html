@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PMG 案件管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --pmg: #55046B; --pmg-dark: #3a0249; --pmg-light: #7B1FA2;
+  --pmg-bg: #F3EEF5; --pmg-border: #E0D0E8;
+  --hot: #D32F2F; --hot-bg: #FFF0F0;
+  --mid: #E65100; --mid-bg: #FFF6F0;
+  --cold: #1565C0; --cold-bg: #F0F4FF;
+  --green: #2E7D32; --green-bg: #F0FBF0;
+  --header-h: 52px; --tab-h: 48px; --bottom-h: 56px;
+}
+html, body { height:100%; overflow:hidden; background:var(--pmg-bg); font-family:'Noto Sans JP',sans-serif; color:#1a1a2e; -webkit-tap-highlight-color:transparent; }
+
+/* HEADER */
+header { position:fixed; top:0; left:0; right:0; height:var(--header-h); background:var(--pmg); display:flex; align-items:center; padding:0 16px; gap:10px; z-index:60; box-shadow:0 2px 10px rgba(0,0,0,0.25); }
+.logo { font-family:'Inter',sans-serif; font-weight:700; font-size:16px; color:#fff; letter-spacing:.05em; }
+.logo span { color:#E0B8F0; }
+.header-sub { font-size:11px; color:rgba(255,255,255,0.6); border-left:1px solid rgba(255,255,255,0.2); padding-left:10px; }
+.header-add { margin-left:auto; width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.35); color:#fff; font-size:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.header-add:active { background:rgba(255,255,255,0.32); }
+
+/* TABS */
+.tab-bar { position:fixed; top:var(--header-h); left:0; right:0; height:var(--tab-h); background:#fff; border-bottom:1.5px solid var(--pmg-border); display:flex; z-index:55; }
+.tab-btn { flex:1; border:none; background:none; font-family:'Noto Sans JP',sans-serif; font-size:11px; font-weight:500; color:#999; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; position:relative; }
+.tab-btn .t-icon { font-size:16px; line-height:1; }
+.tab-btn .t-badge { position:absolute; top:4px; right:12px; background:var(--hot); color:#fff; font-family:'Inter',sans-serif; font-size:9px; font-weight:700; border-radius:8px; padding:0 4px; min-width:14px; height:14px; line-height:14px; text-align:center; display:none; }
+.tab-btn.active { color:var(--pmg); font-weight:700; }
+.tab-btn.active::after { content:''; position:absolute; bottom:0; left:18%; right:18%; height:2.5px; background:var(--pmg); border-radius:2px 2px 0 0; }
+
+/* CONTENT */
+.content { position:fixed; top:calc(var(--header-h) + var(--tab-h)); bottom:var(--bottom-h); left:0; right:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:10px 12px; }
+
+/* SORT BAR */
+.sort-bar { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.sort-bar label { font-size:11px; color:#888; font-weight:500; }
+.sort-select { border:1.5px solid var(--pmg-border); border-radius:8px; padding:5px 10px; font-family:'Noto Sans JP',sans-serif; font-size:12px; color:var(--pmg); background:#fff; outline:none; font-weight:700; }
+.count-label { margin-left:auto; font-size:11px; color:#999; }
+
+/* CLIENT CARD */
+.client-card { background:#fff; border:1.5px solid var(--pmg-border); border-radius:12px; padding:14px; margin-bottom:8px; cursor:pointer; transition:box-shadow 0.15s; position:relative; overflow:hidden; }
+.client-card:active { box-shadow:0 4px 16px rgba(85,4,107,0.15); }
+.client-card .status-bar { position:absolute; left:0; top:0; bottom:0; width:4px; }
+.client-card .card-top { display:flex; align-items:flex-start; gap:10px; padding-left:8px; }
+.client-card .company-name { font-size:15px; font-weight:700; color:#1a1a2e; flex:1; line-height:1.3; }
+.client-card .badges { display:flex; gap:5px; flex-wrap:wrap; margin-top:2px; }
+.badge { font-size:10px; font-weight:700; border-radius:5px; padding:2px 8px; white-space:nowrap; }
+.badge.hot  { background:var(--hot-bg);  color:var(--hot); }
+.badge.mid  { background:var(--mid-bg);  color:var(--mid); }
+.badge.cold { background:var(--cold-bg); color:var(--cold); }
+.badge.pre  { background:#FFF6EC; color:#E65100; }
+.badge.signed { background:var(--green-bg); color:var(--green); }
+.badge.member { background:var(--pmg-bg); color:var(--pmg); }
+
+.client-card .card-meta { padding-left:8px; margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+.meta-row { display:flex; align-items:baseline; gap:6px; }
+.meta-label { font-size:10px; color:#999; font-weight:500; min-width:72px; }
+.meta-value { font-size:12px; color:#333; flex:1; }
+.meta-value.action { color:var(--pmg); font-weight:600; }
+.meta-value.overdue { color:var(--hot); font-weight:700; }
+.meta-value.soon { color:var(--mid); font-weight:700; }
+.meta-value.comment { color:#555; font-size:11px; font-style:italic; }
+
+/* BOTTOM BAR */
+.bottom-bar { position:fixed; bottom:0; left:0; right:0; height:var(--bottom-h); background:#fff; border-top:1.5px solid var(--pmg-border); display:flex; align-items:center; justify-content:center; padding:0 16px; gap:12px; z-index:60; }
+.search-input { flex:1; border:1.5px solid var(--pmg-border); border-radius:10px; padding:8px 12px; font-family:'Noto Sans JP',sans-serif; font-size:13px; outline:none; color:#1a1a2e; }
+.search-input:focus { border-color:var(--pmg-light); }
+
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(85,4,107,0.4); z-index:100; display:flex; align-items:flex-end; backdrop-filter:blur(3px); }
+.modal-overlay.hidden { display:none; }
+.modal-sheet { background:#fff; border-radius:20px 20px 0 0; padding:20px 20px 36px; width:100%; max-height:92vh; overflow-y:auto; box-shadow:0 -8px 32px rgba(85,4,107,0.18); }
+.modal-handle { width:36px; height:4px; background:#DDD; border-radius:2px; margin:0 auto 16px; }
+.modal-sheet h3 { font-size:16px; color:var(--pmg); margin-bottom:14px; font-weight:700; }
+.form-group { margin-bottom:12px; }
+.form-label { font-size:10px; font-weight:700; color:var(--pmg); letter-spacing:.04em; margin-bottom:4px; display:block; }
+.form-input, .form-select, .form-textarea { width:100%; border:1.5px solid var(--pmg-border); border-radius:10px; padding:10px 12px; font-family:'Noto Sans JP',sans-serif; font-size:13px; color:#1a1a2e; background:#fff; outline:none; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--pmg-light); }
+.form-textarea { resize:none; height:72px; line-height:1.5; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.temp-btns { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.temp-btn { padding:10px 4px; border-radius:9px; border:2px solid var(--pmg-border); background:#fff; font-family:'Noto Sans JP',sans-serif; font-size:13px; font-weight:700; text-align:center; cursor:pointer; color:#aaa; }
+.temp-btn.active-hot  { border-color:var(--hot);  background:var(--hot-bg);  color:var(--hot); }
+.temp-btn.active-mid  { border-color:var(--mid);  background:var(--mid-bg);  color:var(--mid); }
+.temp-btn.active-cold { border-color:var(--cold); background:var(--cold-bg); color:var(--cold); }
+.status-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.status-btn { padding:10px; border-radius:9px; border:2px solid var(--pmg-border); background:#fff; font-family:'Noto Sans JP',sans-serif; font-size:12px; font-weight:700; text-align:center; cursor:pointer; color:#aaa; }
+.status-btn.active-pre    { border-color:var(--mid);   background:#FFF6EC; color:var(--mid); }
+.status-btn.active-signed { border-color:var(--green); background:var(--green-bg); color:var(--green); }
+.member-row { display:flex; gap:8px; }
+.member-chip { flex:1; padding:9px 4px; border-radius:10px; border:2px solid var(--pmg-border); background:var(--pmg-bg); font-family:'Noto Sans JP',sans-serif; font-size:13px; font-weight:700; text-align:center; cursor:pointer; color:#aaa; }
+.member-chip[data-m="inamori"].selected { border-color:#C2185B; background:#FFF0F5; color:#C2185B; }
+.member-chip[data-m="abe"].selected     { border-color:#3949AB; background:#EEF2FF; color:#3949AB; }
+.member-chip[data-m="iiyoshi"].selected { border-color:var(--green); background:var(--green-bg); color:var(--green); }
+.modal-actions { display:flex; gap:10px; margin-top:16px; }
+.btn-cancel { flex:1; padding:13px; border:1.5px solid var(--pmg-border); border-radius:10px; background:#fff; font-family:'Noto Sans JP',sans-serif; font-size:14px; color:#888; cursor:pointer; }
+.btn-submit { flex:2; padding:13px; border:none; border-radius:10px; background:var(--pmg); color:#fff; font-family:'Noto Sans JP',sans-serif; font-size:14px; font-weight:700; cursor:pointer; }
+.btn-submit:active { background:var(--pmg-dark); }
+.btn-delete { padding:13px 18px; border:1.5px solid #FFCDD2; border-radius:10px; background:#FFF3F3; color:var(--hot); font-family:'Noto Sans JP',sans-serif; font-size:13px; font-weight:700; cursor:pointer; }
+
+/* LOADING */
+.loading-overlay { position:fixed; inset:0; background:var(--pmg); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999; gap:16px; }
+.loading-logo { font-family:'Inter',sans-serif; font-size:32px; font-weight:700; color:#fff; letter-spacing:.05em; }
+.loading-logo span { color:#E0B8F0; }
+.loading-sub { font-size:13px; color:rgba(255,255,255,0.6); }
+.spinner { width:32px; height:32px; border:3px solid rgba(255,255,255,0.2); border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* EMPTY */
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:60px 20px; color:#C0B0CC; }
+.empty-icon { font-size:48px; }
+.empty-text { font-size:14px; }
+
+/* Toast */
+.toast { position:fixed; bottom:calc(var(--bottom-h) + 12px); left:50%; transform:translateX(-50%); background:#333; color:#fff; font-size:12px; padding:8px 18px; border-radius:20px; z-index:200; opacity:0; transition:opacity 0.3s; white-space:nowrap; pointer-events:none; }
+.toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-logo">PMG<span>MA</span></div>
+  <div class="spinner"></div>
+  <div class="loading-sub" id="loading-sub">データを読み込み中...</div>
+</div>
+
+<header>
+  <div class="logo">PMG<span>MA</span></div>
+  <div class="header-sub">案件管理</div>
+  <button class="header-add" onclick="openAddModal()" aria-label="案件追加">+</button>
+</header>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" data-tab="all" onclick="switchTab('all')">
+    <span class="t-icon">📋</span><span>全件</span>
+    <span class="t-badge" id="tb-all"></span>
+  </button>
+  <button class="tab-btn" data-tab="pre" onclick="switchTab('pre')">
+    <span class="t-icon">🤝</span><span>契約前</span>
+    <span class="t-badge" id="tb-pre"></span>
+  </button>
+  <button class="tab-btn" data-tab="signed" onclick="switchTab('signed')">
+    <span class="t-icon">✅</span><span>プレ契約済</span>
+    <span class="t-badge" id="tb-signed"></span>
+  </button>
+</nav>
+
+<div class="content" id="content">
+  <div class="sort-bar">
+    <label>並び替え</label>
+    <select class="sort-select" id="sort-select" onchange="render()">
+      <option value="action-date">次回アクション日</option>
+      <option value="temp">温度感（高→低）</option>
+      <option value="meeting-date">初回面談日</option>
+      <option value="company">会社名</option>
+    </select>
+    <span class="count-label" id="count-label">0件</span>
+  </div>
+  <div id="client-list"></div>
+</div>
+
+<div class="bottom-bar">
+  <input class="search-input" id="search-input" placeholder="🔍 会社名・担当者で検索…" oninput="render()">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay hidden" id="client-modal" onclick="closeModalOutside(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 id="modal-title">案件を追加</h3>
+
+    <div class="form-group">
+      <label class="form-label">会社名 *</label>
+      <input class="form-input" id="f-company" placeholder="株式会社〇〇" maxlength="50">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">初回面談日</label>
+        <input class="form-input" id="f-meeting" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">次回アクション日</label>
+        <input class="form-input" id="f-action-date" type="date">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">次回アクション内容</label>
+      <input class="form-input" id="f-action" placeholder="例：資料送付、面談設定…" maxlength="100">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">先方の温度感</label>
+      <div class="temp-btns">
+        <div class="temp-btn" data-temp="hot" onclick="selectTemp('hot')">🔥 高</div>
+        <div class="temp-btn" data-temp="mid" onclick="selectTemp('mid')">👍 中</div>
+        <div class="temp-btn" data-temp="cold" onclick="selectTemp('cold')">❄️ 低</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">温度感コメント</label>
+      <textarea class="form-textarea" id="f-temp-comment" placeholder="温度感の詳細・背景を記入…"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">ステータス</label>
+      <div class="status-btns">
+        <div class="status-btn" data-status="pre" onclick="selectStatus('pre')">🤝 契約前</div>
+        <div class="status-btn" data-status="signed" onclick="selectStatus('signed')">✅ プレ契約済</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">担当者</label>
+      <div class="member-row">
+        <div class="member-chip" data-m="inamori" onclick="selectMember('inamori')">稲森</div>
+        <div class="member-chip" data-m="abe"     onclick="selectMember('abe')">阿部</div>
+        <div class="member-chip" data-m="iiyoshi" onclick="selectMember('iiyoshi')">飯吉</div>
+      </div>
+    </div>
+
+    <div class="modal-actions" id="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-submit" onclick="saveClient()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+// ── FIREBASE ──
+const firebaseConfig = {
+  apiKey: "AIzaSyD4qAk4Ty3vr_WWCfQPvAV2Z9Anc6s-WpA",
+  authDomain: "pmg-taskboard.firebaseapp.com",
+  databaseURL: "https://pmg-taskboard-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pmg-taskboard",
+  storageBucket: "pmg-taskboard.firebasestorage.app",
+  messagingSenderId: "289491893335",
+  appId: "1:289491893335:web:a02aeb74549495c36cf712"
+};
+
+let db, clientsRef;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  clientsRef = db.ref('clients');
+} catch(e) {
+  document.getElementById('loading-sub').textContent = 'Firebase初期化エラー';
+}
+
+// ── STATE ──
+let clients = [];
+let activeTab = 'all';
+let editId = null;
+let selectedTemp = null;
+let selectedStatus = null;
+let selectedMemberVal = null;
+
+// ── FIREBASE LISTENER ──
+if (clientsRef) {
+  clientsRef.on('value', snap => {
+    document.getElementById('loading-overlay').style.display = 'none';
+    const data = snap.val();
+    clients = data ? Object.values(data) : [];
+    render();
+  }, err => {
+    document.getElementById('loading-sub').textContent = 'DB接続エラー: ' + err.code;
+  });
+}
+
+// ── RENDER ──
+function render() {
+  const tab = activeTab;
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const sort = document.getElementById('sort-select').value;
+
+  let list = clients.filter(c => {
+    if (tab === 'pre' && c.status !== 'pre') return false;
+    if (tab === 'signed' && c.status !== 'signed') return false;
+    if (search) {
+      const hay = (c.company + (c.member||'')).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  const tempOrder = { hot:0, mid:1, cold:2, '':3 };
+  list.sort((a, b) => {
+    if (sort === 'action-date') {
+      const da = a.actionDate || '9999'; const db2 = b.actionDate || '9999';
+      return da.localeCompare(db2);
+    } else if (sort === 'temp') {
+      return (tempOrder[a.temp||''] || 3) - (tempOrder[b.temp||''] || 3);
+    } else if (sort === 'meeting-date') {
+      const da = a.meetingDate || '9999'; const db2 = b.meetingDate || '9999';
+      return db2.localeCompare(da);
+    } else {
+      return (a.company||'').localeCompare(b.company||'', 'ja');
+    }
+  });
+
+  document.getElementById('count-label').textContent = list.length + '件';
+
+  // Badges
+  setBadge('tb-all', clients.length);
+  setBadge('tb-pre', clients.filter(c=>c.status==='pre').length);
+  setBadge('tb-signed', clients.filter(c=>c.status==='signed').length);
+
+  const el = document.getElementById('client-list');
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📂</div><div class="empty-text">案件がありません</div></div>`;
+    return;
+  }
+  el.innerHTML = '';
+  list.forEach(c => el.appendChild(makeCard(c)));
+}
+
+function setBadge(id, n) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = n > 0 ? n : '';
+  el.style.display = n > 0 ? 'block' : 'none';
+}
+
+function makeCard(c) {
+  const div = document.createElement('div');
+  div.className = 'client-card';
+  div.onclick = () => openEditModal(c.id);
+
+  const tempColor = { hot:'var(--hot)', mid:'var(--mid)', cold:'var(--cold)', '':'var(--pmg-border)' };
+  const tempLabel = { hot:'🔥 高', mid:'👍 中', cold:'❄️ 低' };
+  const memberColor = { inamori:'#C2185B', abe:'#3949AB', iiyoshi:'var(--green)' };
+  const memberLabel = { inamori:'稲森', abe:'阿部', iiyoshi:'飯吉' };
+
+  // Action date styling
+  let actionDateClass = 'action';
+  let actionDateDisplay = c.actionDate ? formatDate(c.actionDate) : '未設定';
+  if (c.actionDate) {
+    const today = new Date().toISOString().split('T')[0];
+    if (c.actionDate < today) actionDateClass = 'overdue';
+    else if (c.actionDate <= addDays(today, 3)) actionDateClass = 'soon';
+  }
+
+  const statusBadge = c.status === 'signed'
+    ? `<span class="badge signed">✅ プレ契約済</span>`
+    : `<span class="badge pre">🤝 契約前</span>`;
+
+  div.innerHTML = `
+    <div class="status-bar" style="background:${tempColor[c.temp||'']}"></div>
+    <div class="card-top">
+      <div>
+        <div class="company-name">${escHtml(c.company||'')}</div>
+        <div class="badges" style="margin-top:5px;">
+          ${c.temp ? `<span class="badge ${c.temp}">${tempLabel[c.temp]}</span>` : ''}
+          ${statusBadge}
+          ${c.member ? `<span class="badge member" style="color:${memberColor[c.member]||'var(--pmg)'};">${memberLabel[c.member]||c.member}</span>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="card-meta">
+      <div class="meta-row">
+        <span class="meta-label">次回アクション</span>
+        <span class="meta-value ${actionDateClass}">${actionDateDisplay}${c.action ? ' — ' + escHtml(c.action) : ''}</span>
+      </div>
+      ${c.meetingDate ? `<div class="meta-row"><span class="meta-label">初回面談</span><span class="meta-value">${formatDate(c.meetingDate)}</span></div>` : ''}
+      ${c.tempComment ? `<div class="meta-row"><span class="meta-label">温度感コメント</span><span class="meta-value comment">${escHtml(c.tempComment)}</span></div>` : ''}
+    </div>`;
+  return div;
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const [y, m, day] = d.split('-');
+  return `${m}/${day}`;
+}
+function addDays(dateStr, n) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── TAB ──
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  render();
+}
+
+// ── MODAL ──
+function resetModal() {
+  document.getElementById('f-company').value = '';
+  document.getElementById('f-meeting').value = '';
+  document.getElementById('f-action-date').value = '';
+  document.getElementById('f-action').value = '';
+  document.getElementById('f-temp-comment').value = '';
+  selectedTemp = null; selectedStatus = null; selectedMemberVal = null;
+  document.querySelectorAll('.temp-btn').forEach(b => b.className = 'temp-btn');
+  document.querySelectorAll('.status-btn').forEach(b => b.className = 'status-btn');
+  document.querySelectorAll('.member-chip').forEach(b => b.classList.remove('selected'));
+}
+
+function openAddModal() {
+  editId = null;
+  resetModal();
+  document.getElementById('modal-title').textContent = '案件を追加';
+  const actions = document.getElementById('modal-actions');
+  actions.innerHTML = `<button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-submit" onclick="saveClient()">保存する</button>`;
+  document.getElementById('client-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('f-company').focus(), 80);
+}
+
+function openEditModal(id) {
+  const c = clients.find(x => x.id === id);
+  if (!c) return;
+  editId = id;
+  resetModal();
+  document.getElementById('modal-title').textContent = '案件を編集';
+  document.getElementById('f-company').value = c.company || '';
+  document.getElementById('f-meeting').value = c.meetingDate || '';
+  document.getElementById('f-action-date').value = c.actionDate || '';
+  document.getElementById('f-action').value = c.action || '';
+  document.getElementById('f-temp-comment').value = c.tempComment || '';
+  if (c.temp) selectTemp(c.temp);
+  if (c.status) selectStatus(c.status);
+  if (c.member) selectMember(c.member);
+  const actions = document.getElementById('modal-actions');
+  actions.innerHTML = `
+    <button class="btn-delete" onclick="deleteClient()">削除</button>
+    <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+    <button class="btn-submit" onclick="saveClient()">保存する</button>`;
+  document.getElementById('client-modal').classList.remove('hidden');
+}
+
+function closeModal() { document.getElementById('client-modal').classList.add('hidden'); editId = null; }
+function closeModalOutside(e) { if (e.target === document.getElementById('client-modal')) closeModal(); }
+
+function selectTemp(t) {
+  selectedTemp = t;
+  document.querySelectorAll('.temp-btn').forEach(b => {
+    b.className = 'temp-btn' + (b.dataset.temp === t ? ` active-${t}` : '');
+  });
+}
+function selectStatus(s) {
+  selectedStatus = s;
+  document.querySelectorAll('.status-btn').forEach(b => {
+    b.className = 'status-btn' + (b.dataset.status === s ? ` active-${s}` : '');
+  });
+}
+function selectMember(m) {
+  selectedMemberVal = m;
+  document.querySelectorAll('.member-chip').forEach(c => c.classList.toggle('selected', c.dataset.m === m));
+}
+
+function saveClient() {
+  const company = document.getElementById('f-company').value.trim();
+  if (!company) { showToast('⚠️ 会社名を入力してください'); return; }
+  const data = {
+    id: editId || 'client-' + Date.now(),
+    company,
+    meetingDate: document.getElementById('f-meeting').value || null,
+    actionDate: document.getElementById('f-action-date').value || null,
+    action: document.getElementById('f-action').value.trim() || null,
+    temp: selectedTemp || null,
+    tempComment: document.getElementById('f-temp-comment').value.trim() || null,
+    status: selectedStatus || 'pre',
+    member: selectedMemberVal || null,
+  };
+  clientsRef.child(data.id).set(data);
+  closeModal();
+  showToast(editId ? '更新しました' : '案件を追加しました');
+}
+
+function deleteClient() {
+  if (!confirm('この案件を削除しますか？')) return;
+  clientsRef.child(editId).remove();
+  closeModal();
+  showToast('削除しました');
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1800);
+}
+</script>
+</body>
+</html>
