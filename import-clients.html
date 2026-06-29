@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>案件一括登録</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+body { font-family: sans-serif; padding: 20px; background: #F3EEF5; }
+button { background: #55046B; color: white; border: none; padding: 14px 28px; border-radius: 10px; font-size: 16px; cursor: pointer; }
+button:active { background: #3a0249; }
+#log { margin-top: 20px; font-size: 13px; white-space: pre-wrap; background: white; padding: 16px; border-radius: 10px; max-height: 60vh; overflow-y: auto; }
+h2 { color: #55046B; }
+</style>
+</head>
+<body>
+<h2>📥 スプレッドシートから案件を一括登録</h2>
+<p>下のボタンを1回だけ押してください。15件の案件が登録されます。</p>
+<button onclick="importClients()">案件を一括登録する</button>
+<div id="log"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD4qAk4Ty3vr_WWCfQPvAV2Z9Anc6s-WpA",
+  authDomain: "pmg-taskboard.firebaseapp.com",
+  databaseURL: "https://pmg-taskboard-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pmg-taskboard",
+  storageBucket: "pmg-taskboard.firebasestorage.app",
+  messagingSenderId: "289491893335",
+  appId: "1:289491893335:web:a02aeb74549495c36cf712"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const clientsRef = db.ref('clients');
+
+// 担当者マッピング
+const MEMBER_MAP = { '阿部':'abe', '稲森':'inamori', '飯吉':'iiyoshi' };
+
+// 温度感自動判定（コメントベース）
+function detectTemp(comment) {
+  const lower = comment || '';
+  if (lower.includes('温度感高くない') || lower.includes('意思が固まっていない') || lower.includes('まだ検討中')) return 'cold';
+  if (lower.includes('プレ契約締結予定') || lower.includes('進めたいと思う') || lower.includes('確度高い')) return 'hot';
+  return 'mid'; // デフォルトは中
+}
+
+const clientsData = [
+  { company:'和泉建設株式会社', meetingDate:'2026-05-11', actionDate:'2026-06-30', action:'阿部から電話', member:'阿部', comment:'' },
+  { company:'東和サーキット株式会社', meetingDate:'2026-06-23', actionDate:'2026-07-03', action:'7月3日2回目面談', member:'阿部', comment:'' },
+  { company:'株式会社ワイケイエスファーマテック', meetingDate:'2026-06-24', actionDate:'2026-07-03', action:'杉岡からフォロー予定（コンサルと相談のため）', member:'阿部', comment:'' },
+  { company:'オリーブクリエーション技研株式会社', meetingDate:'2026-04-28', actionDate:'2026-06-30', action:'阿部から電話', member:'飯吉', comment:'' },
+  { company:'株式会社モリ精工', meetingDate:'2026-06-25', actionDate:'2026-07-10', action:'2週間後川崎からフォロー', member:'飯吉', comment:'' },
+  { company:'株式会社シブヤ', meetingDate:'', actionDate:'2026-06-29', action:'杉岡確認', member:'飯吉', comment:'' },
+  { company:'有限会社トライ食品', meetingDate:'2026-06-25', actionDate:'2026-07-03', action:'阿部とのWEB面談設定中', member:'阿部', comment:'' },
+  { company:'株式会社アシーナ', meetingDate:'2026-01-26', actionDate:'2026-06-26', action:'杉岡長期フォロー', member:'飯吉', comment:'温度感高くない。杉岡長期フォロー' },
+  { company:'株式会社エクセルエフ・ピー', meetingDate:'2026-01-29', actionDate:'2026-06-29', action:'3ヶ月後に再度会話予定', member:'稲森', comment:'社長と会話。3ヶ月後に再度会話予定。現在MAのことまで頭回らない。弊社で進めること合意済み。' },
+  { company:'株式会社ヒロテック', meetingDate:'2026-02-09', actionDate:'2026-06-26', action:'プレ契約締結予定・月々10万円', member:'飯吉', comment:'今坂さんより連絡。プレ契約締結予定。月々10万円' },
+  { company:'株式会社BRACE', meetingDate:'2026-03-03', actionDate:'2026-06-29', action:'WEB面談設定。決算数字が6月中旬以降固まる', member:'稲森', comment:'' },
+  { company:'有限会社関東コンチネンタルサポート', meetingDate:'2026-03-10', actionDate:'2026-07-01', action:'田下が月末にMAの意向確認→稲森へ共有予定', member:'稲森', comment:'' },
+  { company:'株式会社工藤建設工業', meetingDate:'2026-05-25', actionDate:'2026-06-26', action:'杉岡が月末契約のタイミングで連絡', member:'飯吉', comment:'' },
+  { company:'OK Security Services株式会社', meetingDate:'2026-05-26', actionDate:'2026-06-26', action:'26日に飯吉から連絡', member:'飯吉', comment:'' },
+  { company:'大宝建設株式会社', meetingDate:'2026-06-03', actionDate:'2026-06-26', action:'決算書待ち。プレ7月対面後確度高い', member:'飯吉', comment:'決算書待ち。松崎依頼済み。プレ7月対面後確度高い' },
+];
+
+function importClients() {
+  const log = document.getElementById('log');
+  log.textContent = '登録開始...\n';
+  let count = 0;
+
+  clientsData.forEach((c, i) => {
+    const id = 'client-import-' + Date.now() + '-' + i;
+    const data = {
+      id: id,
+      company: c.company,
+      meetingDate: c.meetingDate || null,
+      actionDate: c.actionDate || null,
+      action: c.action || null,
+      temp: detectTemp(c.comment),
+      tempComment: c.comment || null,
+      status: 'pre',
+      member: MEMBER_MAP[c.member] || null,
+    };
+    clientsRef.child(id).set(data).then(() => {
+      count++;
+      log.textContent += `✓ ${c.company} 登録完了\n`;
+      if (count === clientsData.length) {
+        log.textContent += `\n🎉 全${clientsData.length}件の登録が完了しました！`;
+      }
+    }).catch(err => {
+      log.textContent += `✗ ${c.company} エラー: ${err.message}\n`;
+    });
+  });
+}
+</script>
+</body>
+</html>
